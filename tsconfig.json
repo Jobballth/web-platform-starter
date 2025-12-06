@@ -13,6 +13,10 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    
+    /* 👇 เติมบรรทัดนี้ครับ (สำคัญมาก!) */
+    "baseUrl": ".",
+    
     "plugins": [
       {
         "name": "next"
