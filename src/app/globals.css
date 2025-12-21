@@ -1,3 +1,16 @@
 @import "tailwindcss";
 
-/* โค้ดอื่นๆ ต่อท้ายได้เหมือนเดิม */
+/* 1. บอก Tailwind v4 ให้ใช้ระบบคลาสสำหรับ Dark Mode */
+@variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body {
+    /* 2. กำหนดสีพื้นหลังและสีข้อความพื้นฐาน */
+    @apply bg-slate-50 text-slate-900 transition-colors duration-300;
+  }
+
+  /* 3. กำหนดสีเมื่อมีคลาส .dark */
+  .dark body {
+    @apply bg-slate-950 text-slate-50;
+  }
+}
