@@ -1,23 +1,29 @@
+// src/app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google"; 
 import "./globals.css";
-import { ThemeProvider } from "next-themes"; // 1. เพิ่มบรรทัดนี้
-import Sidebar from "@/components/layout/Sidebar";
-import Header from "@/components/layout/Header";
+// ✅ 1. Import ThemeProvider
+import { ThemeProvider } from "next-themes"; 
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Todolish",
+  description: "Task Management App",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased">
-        {/* 3. ห่อทั้งแอปด้วย ThemeProvider */}
+    // ✅ 2. เพิ่ม suppressHydrationWarning เพื่อป้องกัน Error เรื่องสีตอนโหลดหน้าเว็บ
+    <html lang="en" suppressHydrationWarning> 
+      <body className={inter.className}>
+        {/* ✅ 3. ล้อม children ด้วย ThemeProvider และระบุ attribute="class" */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="flex h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-            <Sidebar />
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <Header />
-              <main className="flex-1 overflow-y-auto p-8">
-                {children}
-              </main>
-            </div>
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>
