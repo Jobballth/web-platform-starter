@@ -16,14 +16,14 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-64 h-full bg-white border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800">
-      <div className="p-6">
+    <aside className="hidden md:flex flex-col gap-1.5 w-64 h-full bg-white border-r border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+      <div className="h-20 p-6  border-b border-slate-200 dark:border-slate-800">
         <h1 className="text-2xl font-black text-indigo-600 flex items-center gap-2 tracking-tighter italic">
-          <CheckSquare className="w-8 h-8" /> TODOLISH
+          <CheckSquare className="size-8" /> TODOLISH
         </h1>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4 font-medium">
+      <nav className="flex-1 px-4 flex flex-col gap-4 mt-4 font-medium ">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (

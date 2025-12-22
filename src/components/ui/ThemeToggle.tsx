@@ -26,12 +26,12 @@ export default function ThemeToggle() {
   return (
     <Button
       variant="secondary"
-      className="w-10 h-10 px-0 relative overflow-hidden"
+      className="size-10 px-0 relative overflow-hidden justify-center"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       title="Toggle Theme"
     >
       {/* ไอคอนพระอาทิตย์ (หมุนออกเมื่อเป็น Dark) */}
-      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-slate-900 dark:text-slate-100" />
+      <Sun className=" h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0 text-slate-900 dark:text-slate-100" />
       
       {/* ไอคอนพระจันทร์ (หมุนเข้าเมื่อเป็น Dark) */}
       <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all duration-300 dark:rotate-0 dark:scale-100 text-slate-900 dark:text-slate-100" />

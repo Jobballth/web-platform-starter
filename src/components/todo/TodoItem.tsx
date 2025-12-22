@@ -1,66 +1,51 @@
 "use client";
 
-import { Check, Trash2, CalendarClock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Check, MoreHorizontal, Calendar } from "lucide-react";
+import { Task } from "@/lib/data-mock";
 import StatusBadge from "@/components/ui/StatusBadge";
-import Button from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
 interface TodoItemProps {
-  id: string;
-  title: string;
-  dueDate?: string;
-  status: "todo" | "in-progress" | "done";
-  onToggle?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  task: Task;
 }
 
-export default function TodoItem({ id, title, dueDate, status, onToggle, onDelete }: TodoItemProps) {
-  return (
-    <div className="group flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <div className="flex items-center gap-4">
-        {/* Checkbox แบบ Custom */}
-        <button
-          onClick={() => onToggle?.(id)}
-          className={cn(
-            "flex h-6 w-6 items-center justify-center rounded-lg border-2 transition-all",
-            status === "done"
-              ? "bg-indigo-600 border-indigo-600 text-white"
-              : "border-slate-300 bg-white hover:border-indigo-400 dark:bg-slate-800 dark:border-slate-600"
-          )}
-        >
-          {status === "done" && <Check size={14} strokeWidth={3} />}
-        </button>
+export default function TodoItem({ task }: TodoItemProps) {
+  const isCompleted = task.status === "completed";
 
-        {/* เนื้อหางาน */}
-        <div className="flex flex-col">
-          <span className={cn(
-            "font-medium text-sm transition-all",
-            status === "done" ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700 dark:text-slate-200"
+  return (
+    <div className="group flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-indigo-300 dark:hover:border-indigo-700 transition-all cursor-pointer">
+      <div className="flex items-center gap-4">
+        {/* Checkbox Custom */}
+        <div className={cn(
+          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+          isCompleted 
+            ? "bg-indigo-500 border-indigo-500" 
+            : "border-slate-300 dark:border-slate-600 group-hover:border-indigo-400"
+        )}>
+          {isCompleted && <Check size={14} className="text-white" />}
+        </div>
+
+        {/* Task Details */}
+        <div>
+          <h4 className={cn(
+            "font-medium text-slate-900 dark:text-white transition-all",
+            isCompleted && "text-slate-400 line-through"
           )}>
-            {title}
-          </span>
-          {dueDate && (
-            <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-              <CalendarClock size={12} />
-              {dueDate}
+            {task.title}
+          </h4>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center text-xs text-slate-500">
+              <Calendar size={12} className="mr-1" /> {task.date}
             </div>
-          )}
+            <StatusBadge status={task.priority} />
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <StatusBadge status={status} />
-        
-        {/* ปุ่มลบจะโผล่มาเมื่อเอาเมาส์ชี้ (group-hover) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete?.(id)}
-          className="text-slate-400 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
-        >
-          <Trash2 size={18} />
-        </Button>
-      </div>
+      {/* Actions */}
+      <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity">
+        <MoreHorizontal size={20} />
+      </button>
     </div>
   );
 }
