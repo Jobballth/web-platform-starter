@@ -26,7 +26,7 @@ export default function ThemeToggle() {
   return (
     <Button
       variant="secondary"
-      className="size-10 px-0 relative overflow-hidden justify-center"
+      className="cursor-pointer size-10 px-0 relative overflow-hidden justify-center"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       title="Toggle Theme"
     >

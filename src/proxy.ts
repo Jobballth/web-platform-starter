@@ -1,34 +1,45 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
-// ✅ ต้องใช้ export default function เพื่อให้ Next.js มองเห็นเป็นฟังก์ชันหลัก
-export default function proxy(request: NextRequest) {
-  const path = request.nextUrl.pathname;
-  
-  // 1. ดึง Token จาก Cookie (บัตรผ่าน)
-  const token = request.cookies.get('token')?.value || '';
+export default withAuth(
+  function middleware(req) {
+    const token = req.nextauth.token;
+    const path = req.nextUrl.pathname;
 
-  // 2. ตรวจสอบสถานะ Path
-  const isAuthPath = path.startsWith('/auth');
-  const isDashboardPath = path.startsWith('/dashboard');
+    // ✅ กฎ: ถ้ามี Token แล้ว (Login แล้ว) แต่พยายามเข้าหน้า Auth
+    // ให้ดีดไป Dashboard เลย (คน Login แล้วไม่ควรเห็นหน้า Login อีก)
+    if (path.startsWith("/auth") && token) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      authorized: ({ token, req }) => {
+        const path = req.nextUrl.pathname;
 
-  // 3. กฎ: ถ้าจะเข้า Dashboard แต่ไม่มีบัตร -> ส่งไป Login
-  if (isDashboardPath && !token) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+        // ✅ แก้ไขจุดตาย: ถ้า user เข้าหน้า "/auth/..." ให้ผ่านได้เลยไม่ต้องเช็ค token
+        // เพื่อป้องกัน Redirect Loop (คนไม่มีสิทธิ์ต้องเข้าหน้า Login ได้)
+        if (path.startsWith("/auth")) {
+          return true;
+        }
+
+        // สำหรับหน้าอื่นๆ (Dashboard, Task) ต้องมี Token เท่านั้น
+        return !!token;
+      },
+    },
+    pages: {
+      signIn: "/auth/login",
+    },
   }
+);
 
-  // 4. กฎ: ถ้ามีบัตรแล้วแต่อยากไปหน้า Login -> ส่งไป Dashboard
-  if (isAuthPath && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return NextResponse.next();
-}
-
-// ✅ ส่วนของการกำหนดขอบเขต (Matcher) ยังเหมือนเดิม
 export const config = {
   matcher: [
-    '/dashboard/:path*', 
-    '/auth/:path*',
+    "/dashboard/:path*",
+    "/task/:path*",    
+    "/settings/:path*",
+    "/auth/:path*", // ใส่ไว้ได้ แต่ต้องเขียนดักใน authorized แบบด้านบน
   ],
 };

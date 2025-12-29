@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react"; // ✅ 1. ใช้ signIn มาตรฐานของ NextAuth
+import { useRouter } from "next/navigation"; // ✅ 2. ต้องใช้ router เพื่อเปลี่ยนหน้าเมื่อสำเร็จ
 import Link from "next/link";
-// ❌ ลบบรรทัด import useRouter ออกไปเลยครับ ไม่ได้ใช้แล้ว
-import { loginUser } from "./actions"; 
 import { Eye, EyeOff, Loader2, Mail, Lock, LogIn, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
-  // ❌ ลบบรรทัด const router = useRouter(); ออก
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,15 +18,32 @@ export default function LoginPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    
-    // เรียกใช้ Server Action
-    const result = await loginUser(formData);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-    if (result?.error) {
-      setError(result.error);
-      setIsLoading(false); // หยุดหมุนถ้ามี error
-    } else {
-      // ✅ ไม่ต้องทำอะไรครับ เพราะ Server Action จะดีดไปหน้า Dashboard เอง
+    try {
+      // ✅ 3. เรียกใช้ signIn แบบ Client Side
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false, // ⚠️ สำคัญ: ตั้งเป็น false เพื่อไม่ให้มันดีดมั่ว (เราจะคุมเอง)
+      });
+
+      if (result?.error) {
+        // กรณี Login พลาด: แสดง Error และหยุดหมุน
+        console.error("Login Failed:", result.error);
+        setError("Invalid email or password");
+        setIsLoading(false);
+      } else {
+        // ✅ 4. กรณี Login สำเร็จ
+        // router.refresh() สำคัญมาก! เพื่อให้ Server Component รู้ว่ามี Session แล้ว
+        router.refresh(); 
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.error("System Error:", err);
+      setError("Something went wrong. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -45,7 +62,7 @@ export default function LoginPage() {
 
         {/* Error Message Display */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 flex items-start gap-3">
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 flex items-start gap-3 animate-pulse">
             <AlertCircle className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" size={18} />
             <p className="text-sm text-rose-600 dark:text-rose-300 font-medium">{error}</p>
           </div>

@@ -2,8 +2,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google"; 
 import "./globals.css";
-// ✅ 1. Import ThemeProvider
 import { ThemeProvider } from "next-themes"; 
+// ✅ 1. Import SessionProvider (ตรวจสอบ Path ของไฟล์ Provider ที่คุณสร้างไว้)
+import { NextAuthProvider } from "@/providers/NextAuthProvider"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,13 +19,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    // ✅ 2. เพิ่ม suppressHydrationWarning เพื่อป้องกัน Error เรื่องสีตอนโหลดหน้าเว็บ
     <html lang="en" suppressHydrationWarning> 
       <body className={inter.className}>
-        {/* ✅ 3. ล้อม children ด้วย ThemeProvider และระบุ attribute="class" */}
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-        </ThemeProvider>
+        {/* ✅ 2. ล้อมด้วย NextAuthProvider (หรือ SessionProvider) เพิ่มเข้าไป */}
+        <NextAuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            {children}
+          </ThemeProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

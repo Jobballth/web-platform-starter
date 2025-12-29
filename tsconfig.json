@@ -13,10 +13,7 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    
-    /* 👇 เติมบรรทัดนี้ครับ (สำคัญมาก!) */
     "baseUrl": ".",
-    
     "plugins": [
       {
         "name": "next"
@@ -33,6 +30,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "src/components/Navbar"  ],
+  ],
   "exclude": ["node_modules"]
 }
