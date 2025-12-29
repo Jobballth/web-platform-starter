@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation"; // ✅ สำคัญมาก: เอาไว้เช็คว่าตอนนี้อยู่หน้าไหน
+import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   ListTodo, 
@@ -9,12 +9,12 @@ import {
   Sparkles,
   Calendar
 } from "lucide-react";
-import { cn } from "@/lib/utils"; // ถ้าคุณไม่มีไฟล์ utils ให้ใช้ className ปกติแทนได้ครับ
+import { cn } from "@/lib/utils"; 
 
 export default function Sidebar() {
-  const pathname = usePathname(); // ✅ ดึง URL ปัจจุบันมา (เช่น /task หรือ /Settings)
+  const pathname = usePathname();
 
-  // ฟังก์ชันเช็คว่าปุ่มไหนควรเป็นสีม่วง (Active)
+  // ฟังก์ชันเช็คสถานะ Active
   const isActive = (path: string) => pathname === path;
 
   return (
@@ -26,7 +26,7 @@ export default function Sidebar() {
           <div className="bg-indigo-600 p-2 rounded-xl group-hover:rotate-12 transition-transform duration-300 shadow-lg shadow-indigo-200 dark:shadow-none font-black text-white">
             <Sparkles size={20} />
           </div>
-          <span className="text-2xl font-black bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent tracking-tighter">
+          <span className="text-2xl font-black bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent tracking-tighter">
             Todolish
           </span>
         </Link>
@@ -35,7 +35,6 @@ export default function Sidebar() {
       {/* 2. Navigation Links */}
       <nav className="flex-1 px-4 py-6 space-y-1.5 font-bold">
         
-        {/* ลิงก์ไปหน้า Dashboard */}
         <Link 
           href="/dashboard" 
           className={cn(
@@ -48,7 +47,6 @@ export default function Sidebar() {
           <LayoutDashboard size={20} /> Dashboard
         </Link>
 
-        {/* ✅ ลิงก์ไปหน้า Task (URL: /task) */}
         <Link 
           href="/task" 
           className={cn(
@@ -61,22 +59,21 @@ export default function Sidebar() {
           <ListTodo size={20} /> My Tasks
         </Link>
 
-        {/* ลิงก์ไปหน้า Calendar (ถ้ามี) */}
         <Link 
           href="#" 
-          className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all font-medium"
+          className="flex items-center gap-3 px-4 py-3 text-slate-400 dark:text-slate-600 cursor-not-allowed rounded-xl transition-all font-medium"
         >
-          <Calendar size={20} /> Calendar
+          <Calendar size={20} /> Calendar <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded">Soon</span>
         </Link>
 
         <div className="h-px bg-slate-100 dark:bg-slate-800 my-4 mx-2" />
 
-        {/* ✅ ลิงก์ไปหน้า Settings (URL: /Settings) */}
+        {/* ✅ เปลี่ยนจาก /Settings เป็น /settings ให้ตรงกับชื่อโฟลเดอร์ */}
         <Link 
-          href="/Settings" 
+          href="/settings" 
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all",
-            isActive("/Settings") 
+            isActive("/settings") 
               ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400" 
               : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
           )}

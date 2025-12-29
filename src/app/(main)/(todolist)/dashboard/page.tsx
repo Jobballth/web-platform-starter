@@ -1,32 +1,10 @@
-import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { getAuthUser } from "./actions"; 
 import { redirect } from "next/navigation";
-import CreateTaskModal from "@/components/todo/CreateTaskModal";
+import { StatsCards } from "@/components/dashboard/StatsCards"; 
+import DashboardCharts from "@/components/dashboard/DashboardCharts"; 
 
-import { OverviewStats, OverviewStatsSkeleton } from "@/components/dashboard/OverviewStats";
-import { RecentTasksContainer, RecentTasksSkeleton } from "@/components/dashboard/RecentTasksContainer";
-
-interface PrismaTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  dueDate: Date | null;
-  createdAt: Date;
-  userId: string;
-}
-
-interface PlainTask {
-  id: string;
-  title: string;
-  status: string;
-  priority: string;
-  dueDate: string | null;
-  createdAt: string;
-  userId: string;
-}
-
+// ฟังก์ชันดึงวันที่ปัจจุบัน
 const getCurrentDate = () => {
   return new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
@@ -39,34 +17,61 @@ const getCurrentDate = () => {
 export default async function DashboardPage() {
   const user = await getAuthUser();
 
-  // ป้องกันกรณี user เป็น null ให้เด้งไปหน้าแรก
   if (!user) {
     redirect("/");
   }
 
-  // ดึงข้อมูล tasks จาก Database
+  // 1. ดึงข้อมูล tasks ทั้งหมด
   const tasks = await db.task.findMany({
     where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  }) as PrismaTask[];
+  });
 
-  // แปลง Date เป็น String เพื่อส่งให้ Client Component (ป้องกัน Error Serialization)
-  const plainTasks: PlainTask[] = tasks.map((task: PrismaTask) => ({
-    id: task.id,
-    title: task.title,
-    status: task.status,
-    priority: task.priority,
-    userId: task.userId,
-    dueDate: task.dueDate ? task.dueDate.toISOString() : null,
-    createdAt: task.createdAt.toISOString(),
-  }));
+  // 2. ✅ แก้ไข: เตรียมข้อมูลส่งกราฟ (Normalization)
+  // ปรับค่า Status ให้เป็นมาตรฐานเดียวกัน (DONE) ก่อนส่งไปให้กราฟวาด
+  const plainTasks = tasks.map((task) => {
+    const s = task.status ? task.status.toUpperCase() : "TODO";
+    // ถ้าเจอคำว่า DONE หรือ COMPLETED ให้ถือว่าเป็น "DONE" ให้หมด
+    const normalizedStatus = (s === "DONE" || s === "COMPLETED") ? "DONE" : s;
+    
+    return {
+      id: task.id,
+      priority: task.priority.toUpperCase(),
+      status: normalizedStatus, 
+    };
+  });
+
+  // 3. ✅ แก้ไข: สูตรคำนวณ StatsCards ให้แม่นยำที่สุด
+  const stats = {
+    total: tasks.length,
+    
+    // นับงานเสร็จ: เช็คทั้ง "DONE" และ "COMPLETED"
+    completed: tasks.filter(t => {
+      const s = t.status ? t.status.toUpperCase() : "";
+      return s === "DONE" || s === "COMPLETED";
+    }).length,
+    
+    // นับงานค้าง: คืออันที่ไม่ใช่งานเสร็จ
+    pending: tasks.filter(t => {
+      const s = t.status ? t.status.toUpperCase() : "";
+      return s !== "DONE" && s !== "COMPLETED";
+    }).length,
+    
+    // นับงานด่วนที่ยังไม่เสร็จ
+    highPriority: tasks.filter(t => {
+      const s = t.status ? t.status.toUpperCase() : "";
+      const p = t.priority ? t.priority.toUpperCase() : "";
+      return p === "HIGH" && (s !== "DONE" && s !== "COMPLETED");
+    }).length
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 relative overflow-hidden">
-      {/* แก้ไข bg-size เป็น [background-size:...] */}
-      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[20px_20px] opacity-50 pointer-events-none" />
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] dark:bg-[radial-gradient(#1e293b_1px,transparent_1px)] bg-size-[20px_20px] opacity-50 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
+        
+        {/* --- HEADER --- */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -75,29 +80,31 @@ export default async function DashboardPage() {
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-              Good Morning, {/* แก้ไข bg-linear-to-r เป็น bg-gradient-to-r */}
+              Welcome back,{" "}
               <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
                 {user.fullName || 'User'}
               </span>
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-base max-w-lg">
-              {"Here's what's happening with your projects today."}
+            <p className="text-slate-500 dark:text-slate-400 text-base">
+              {"Here's a summary of your workspace performance."}
             </p>
-          </div>
-          
-          <div className="shrink-0">
-             <CreateTaskModal />
           </div>
         </header>
 
-        <Suspense fallback={<OverviewStatsSkeleton />}>
-           <OverviewStats userId={user.id} />
-        </Suspense>
+        {/* --- STATS CARDS --- */}
+        <div className="animate-in fade-in zoom-in duration-500 delay-100">
+           <StatsCards 
+             total={stats.total}
+             completed={stats.completed}
+             pending={stats.pending}
+             overdue={stats.highPriority}
+           />
+        </div>
 
-        <div className="mt-8">
-          <Suspense fallback={<RecentTasksSkeleton />}>
-              <RecentTasksContainer initialTasks={plainTasks} />
-          </Suspense>
+        {/* --- CHARTS --- */}
+        <div className="mt-8 animate-in fade-in zoom-in duration-500 delay-200">
+           {/* ส่งข้อมูลที่ปรับเป็นมาตรฐานแล้วเข้าไป */}
+           <DashboardCharts tasks={plainTasks} />
         </div>
       </div>
     </div>

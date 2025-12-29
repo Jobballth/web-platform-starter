@@ -1,173 +1,116 @@
 "use server";
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-// ==========================================
-// 🔐 ส่วนของ AUTHENTICATION (Login / Register)
-// ==========================================
-
-export async function login(formData: FormData) {
-  const email = formData.get("email")?.toString();
-  const password = formData.get("password")?.toString();
-
-  if (!email || !password) {
-    return { error: "กรุณากรอกอีเมลและรหัสผ่าน" };
-  }
-
-  try {
-    const user = await db.user.findUnique({ where: { email } });
-
-    if (!user || user.password !== password) {
-      return { error: "อีเมลหรือรหัสผ่านไม่ถูกต้อง" };
-    }
-
-    const cookieStore = await cookies();
-    cookieStore.set("token", user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return { error: "เกิดข้อผิดพลาดในการเข้าสู่ระบบ" };
-  }
-
-  redirect("/dashboard");
-}
-
-export async function register(formData: FormData) {
-  const fullName = formData.get("fullName")?.toString();
-  const email = formData.get("email")?.toString();
-  const password = formData.get("password")?.toString();
-
-  if (!email || !password || !fullName) {
-    return { error: "กรุณากรอกข้อมูลให้ครบถ้วน" };
-  }
-
-  try {
-    const existingUser = await db.user.findUnique({ where: { email } });
-
-    if (existingUser) {
-      return { error: "อีเมลนี้ถูกใช้งานแล้ว" };
-    }
-
-    const newUser = await db.user.create({
-      data: { fullName, email, password },
-    });
-
-    const cookieStore = await cookies();
-    cookieStore.set("token", newUser.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-      path: "/",
-    });
-
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return { error: "ไม่สามารถสร้างบัญชีได้" };
-  }
-
-  redirect("/dashboard");
-}
-
-export async function logout() {
-  const cookieStore = await cookies();
-  cookieStore.delete("token");
-  redirect("/");
+export interface Task {
+  id: string;
+  title: string;
+  status: string;
+  priority: string;
+  createdAt: Date;
+  dueDate?: Date | string | null;
+  userId: string;
 }
 
 export async function getAuthUser() {
-  try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("token")?.value;
-    
-    if (!token) return null;
+  const user = await getUser();
+  return user;
+}
 
-    const user = await db.user.findUnique({
-      where: { id: token },
-      select: { id: true, fullName: true, email: true }
+export async function getTasks(): Promise<Task[]> {
+  const user = await getUser();
+  if (!user) redirect("/auth/login");
+
+  try {
+    const tasks = await db.task.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
     });
-    return user;
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return null;
+    return tasks as Task[]; 
+  } catch (error) {
+    console.error("Failed to fetch tasks:", error);
+    return [];
   }
 }
 
-// ==========================================
-// 📝 ส่วนของ TASK MANAGEMENT
-// ==========================================
-
+// 1. สร้างงานใหม่
 export async function createTask(formData: FormData) {
-  const user = await getAuthUser();
-  if (!user) return { error: "กรุณาล็อกอินก่อนทำรายการ" };
+  const user = await getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
 
-  const title = formData.get("title")?.toString();
-  const priority = formData.get("priority")?.toString();
-  const dueDateStr = formData.get("dueDate")?.toString();
+  const title = formData.get("title") as string;
+  const dueDateString = formData.get("dueDate") as string;
+  const priority = formData.get("priority") as string;
 
   if (!title || title.trim() === "") {
-    return { error: "กรุณาระบุหัวข้อของงาน (Title)" };
+    return { success: false, error: "Task title is required." };
   }
 
   try {
     await db.task.create({
       data: {
-        title: title.trim(),
-        priority: priority?.toLowerCase() || "medium",
-        dueDate: dueDateStr ? new Date(dueDateStr) : null,
-        status: "todo",
+        title,
+        // ✅ ใช้ตัวพิมพ์ใหญ่ให้ตรงกับ Enum ของ Prisma
+        priority: (priority || "MEDIUM").toUpperCase(),
+        status: "TODO", 
+        dueDate: dueDateString ? new Date(dueDateString) : null,
         userId: user.id,
       },
     });
 
     revalidatePath("/dashboard");
+    revalidatePath("/task"); 
     return { success: true };
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return { error: "ไม่สามารถบันทึกงานได้" };
+  } catch (error) {
+    console.error("Create Task Error:", error);
+    return { success: false, error: "Database error" };
   }
 }
 
+// 2. สลับสถานะ (Toggle Status)
 export async function toggleTaskStatus(taskId: string, currentStatus: string) {
-  const user = await getAuthUser();
-  if (!user) return { error: "Unauthorized" };
+  const user = await getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
 
   try {
-    const newStatus = currentStatus === "completed" ? "todo" : "completed";
-    
+    // ✅ แก้ไข Logic: ใช้ DONE และ TODO (ตัวพิมพ์ใหญ่) 
+    // เพื่อให้สอดคล้องกับ RecentTasksContainer ที่เราแก้ไปก่อนหน้า
+    const newStatus = currentStatus.toUpperCase() === "DONE" ? "TODO" : "DONE";
+
     await db.task.update({
-      where: { id: taskId, userId: user.id }, 
+      where: { id: taskId, userId: user.id },
       data: { status: newStatus },
     });
-    
+
     revalidatePath("/dashboard");
+    revalidatePath("/task");
+    
     return { success: true };
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return { error: "อัปเดตสถานะไม่สำเร็จ" };
+  } catch (error) {
+    console.error("Toggle Status Error:", error);
+    return { success: false, error: "Failed to update status" };
   }
 }
 
+// 3. ลบงาน
 export async function deleteTask(taskId: string) {
-  const user = await getAuthUser();
-  if (!user) return { error: "Unauthorized" };
+  const user = await getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
 
   try {
     await db.task.delete({
-      where: { id: taskId, userId: user.id }, 
+      where: { id: taskId, userId: user.id },
     });
 
     revalidatePath("/dashboard");
+    revalidatePath("/task");
+    
     return { success: true };
-  } catch {
-    // ✅ ไม่ประกาศตัวแปร error
-    return { error: "ลบงานไม่สำเร็จ" };
+  } catch (error) {
+    console.error("Delete Task Error:", error);
+    return { success: false, error: "Failed to delete task" };
   }
 }

@@ -2,7 +2,6 @@
 import Link from "next/link";
 import UserAccountNav from "./UserAccountNav";
 import ThemeToggle from "../ui/theme/ThemeToggle"; 
-import { Search } from "lucide-react";
 import { getAuthUser } from "@/app/(main)/(todolist)/dashboard/actions";
 
 export default async function Header() { 
@@ -10,17 +9,7 @@ export default async function Header() {
 
   return (
     // ✅ เปลี่ยนจาก z-40 เป็น z-30 เพื่อให้ Modal (z-50+) ทับได้
-    <header className="h-20 border-b min-h-20 border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 flex items-center justify-between px-8 sticky top-0 z-10">
-      
-      {/* 1. ส่วนซ้าย: Search Bar */}
-      <div className="flex items-center gap-2 text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-transparent focus-within:border-indigo-500 transition-all w-64 md:w-80">
-        <Search size={16} />
-        <input 
-          type="text"
-          placeholder="Search for tasks..."
-          className="bg-transparent border-none outline-none text-sm text-slate-900 dark:text-slate-200 w-full placeholder:text-slate-400"
-        />
-      </div>
+    <header className="h-20 border-b min-h-20 border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 flex items-center justify-end px-8 sticky top-0 z-10">
 
       {/* 2. ส่วนขวา: กลุ่มปุ่มและสถานะผู้ใช้ */}
       <div className="flex items-center gap-4"> 

@@ -5,7 +5,7 @@ import { getUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-// --- Existing Functions (Keep these) ---
+// --- Existing Functions ---
 
 export interface Task {
   id: string;
@@ -41,6 +41,7 @@ export async function getTasks(): Promise<Task[]> {
   }
 }
 
+// ✅ แก้ไข 1: สร้างงานใหม่ให้เป็นตัวพิมพ์ใหญ่ (TODO)
 export async function createTask(formData: FormData) {
   const user = await getUser();
 
@@ -60,13 +61,16 @@ export async function createTask(formData: FormData) {
     await db.task.create({
       data: {
         title,
-        priority: priority || "medium",
-        status: "todo", 
+        // ✅ บังคับเป็นตัวใหญ่ (MEDIUM/HIGH/LOW)
+        priority: (priority || "MEDIUM").toUpperCase(), 
+        // ✅ บังคับเป็นตัวใหญ่ (TODO) เพื่อให้กราฟนับค่าถูก
+        status: "TODO", 
         dueDate: dueDateString ? new Date(dueDateString) : null,
         userId: user.id,
       },
     });
 
+    // สั่งรีเฟรชทั้ง 2 หน้า
     revalidatePath("/dashboard");
     revalidatePath("/task"); 
     return { success: true };
@@ -76,27 +80,29 @@ export async function createTask(formData: FormData) {
   }
 }
 
-// --- ✅ NEW FUNCTIONS TO FIX YOUR ERROR ---
+// --- ✅ NEW FUNCTIONS (FIXED) ---
 
-// 1. Toggle Task Status
+// ✅ แก้ไข 2: สลับสถานะโดยใช้ DONE/TODO (ตัวใหญ่)
 export async function toggleTaskStatus(taskId: string, currentStatus: string) {
   const user = await getUser();
   if (!user) return { success: false, error: "Unauthorized" };
 
   try {
-    // Logic: If currently "completed", switch to "todo", otherwise "completed"
-    // (This matches the check in your RecentTasksContainer: task.status === "completed")
-    const newStatus = currentStatus === "completed" ? "todo" : "completed";
+    // แปลงเป็นตัวใหญ่ก่อนเช็ค เพื่อความชัวร์
+    const statusUpper = currentStatus.toUpperCase();
+    
+    // Logic: ถ้าเป็น DONE ให้กลับไป TODO, ถ้าไม่ใช่ (เช่น TODO หรือ IN_PROGRESS) ให้เป็น DONE
+    const newStatus = statusUpper === "DONE" ? "TODO" : "DONE";
 
     await db.task.update({
       where: { 
         id: taskId,
-        userId: user.id // Security check: ensure user owns the task
+        userId: user.id 
       },
       data: { status: newStatus },
     });
 
-    // Refresh UI
+    // ✅ Refresh UI: สั่งให้หน้า Dashboard และ Task โหลดข้อมูลใหม่ทันที
     revalidatePath("/dashboard");
     revalidatePath("/task");
     
@@ -107,7 +113,7 @@ export async function toggleTaskStatus(taskId: string, currentStatus: string) {
   }
 }
 
-// 2. Delete Task
+// 3. Delete Task (อันนี้ถูกต้องแล้ว)
 export async function deleteTask(taskId: string) {
   const user = await getUser();
   if (!user) return { success: false, error: "Unauthorized" };
