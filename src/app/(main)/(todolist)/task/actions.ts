@@ -53,7 +53,6 @@ export async function createTask(formData: FormData) {
     await db.task.create({
       data: {
         title,
-        // ✅ ใช้ตัวพิมพ์ใหญ่ให้ตรงกับ Enum ของ Prisma
         priority: (priority || "MEDIUM").toUpperCase(),
         status: "TODO", 
         dueDate: dueDateString ? new Date(dueDateString) : null,
@@ -70,24 +69,27 @@ export async function createTask(formData: FormData) {
   }
 }
 
-// 2. สลับสถานะ (Toggle Status)
+// 2. สลับสถานะ (Toggle Status) ✅ แก้ไขให้สมบูรณ์แล้ว
 export async function toggleTaskStatus(taskId: string, currentStatus: string) {
   const user = await getUser();
   if (!user) return { success: false, error: "Unauthorized" };
 
   try {
-    // ✅ แก้ไข Logic: ใช้ DONE และ TODO (ตัวพิมพ์ใหญ่) 
-    // เพื่อให้สอดคล้องกับ RecentTasksContainer ที่เราแก้ไปก่อนหน้า
-    const newStatus = currentStatus.toUpperCase() === "DONE" ? "TODO" : "DONE";
+    // ตรวจสอบสถานะเดิม (แปลงเป็นตัวใหญ่เพื่อความชัวร์)
+    // ถ้าสถานะเดิมคือ DONE ให้เปลี่ยนเป็น TODO
+    // ถ้าสถานะเดิมไม่ใช่ DONE (เช่น TODO) ให้เปลี่ยนเป็น DONE
+    const statusUpper = currentStatus.toUpperCase();
+    const newStatus = statusUpper === "DONE" ? "TODO" : "DONE";
 
     await db.task.update({
       where: { id: taskId, userId: user.id },
-      data: { status: newStatus },
+      data: { status: newStatus }, // บันทึกค่าที่สลับแล้วลง DB
     });
 
+    // สั่งให้ Next.js รีเฟรชข้อมูลในหน้าเหล่านี้ทันที
     revalidatePath("/dashboard");
     revalidatePath("/task");
-    
+
     return { success: true };
   } catch (error) {
     console.error("Toggle Status Error:", error);

@@ -1,10 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Calendar, Trash2 } from "lucide-react";
 import { Task } from "@/lib/data-mock";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
-// แก้ไข: ลบ useMotionValue, useTransform และ AnimatePresence ออก
 import { motion } from "framer-motion";
 
 interface TodoItemProps {
@@ -25,7 +25,14 @@ const AnimatedCheckmark = ({ isChecked }: { isChecked: boolean }) => {
           : "border-slate-300 bg-transparent group-hover:border-indigo-400 dark:border-slate-600"
       )}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3.5" stroke="currentColor" className="h-3.5 w-3.5 text-white">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth="3.5"
+        stroke="currentColor"
+        className="h-3.5 w-3.5 text-white"
+      >
         <motion.path
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -42,15 +49,17 @@ const AnimatedCheckmark = ({ isChecked }: { isChecked: boolean }) => {
 };
 
 export default function TodoItem({ task, onToggle, onDelete }: TodoItemProps) {
-  const isCompleted = task.status === "completed";
+  // ✅ FIX: local state ใช้เฉพาะตอนคลิก
+  const [isCompleted, setIsCompleted] = useState(
+    task.status === "completed"
+  );
 
   return (
     <motion.div
-      layout // ทำให้ List อื่นๆ เลื่อนขึ้นมาแทนที่แบบนุ่มนวล
+      layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }} // จะทำงานเมื่อถูกครอบด้วย AnimatePresence ในไฟล์แม่
-      whileHover={{ scale: 1.005, backgroundColor: "rgba(255,255,255,0.8)" }}
+      whileHover={{ scale: 1.005 }}
       className={cn(
         "group relative flex items-center justify-between gap-4 rounded-xl border p-4 transition-all duration-300 shadow-sm",
         "bg-white/50 backdrop-blur-sm dark:bg-slate-900/50",
@@ -59,8 +68,12 @@ export default function TodoItem({ task, onToggle, onDelete }: TodoItemProps) {
           : "border-slate-200 hover:border-indigo-200 hover:shadow-md dark:border-slate-800 dark:hover:border-indigo-900/50"
       )}
     >
-      <div 
-        onClick={() => onToggle(task.id)}
+      <div
+        onClick={() => {
+          // ✅ optimistic update (ทันที)
+          setIsCompleted((prev) => !prev);
+          onToggle(task.id);
+        }}
         className="flex flex-1 cursor-pointer items-start gap-4"
       >
         <div className="pt-0.5">
@@ -68,12 +81,16 @@ export default function TodoItem({ task, onToggle, onDelete }: TodoItemProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <h4 className={cn(
+          <h4
+            className={cn(
               "text-base font-semibold text-slate-700 dark:text-slate-200",
-              isCompleted && "text-slate-400 line-through decoration-slate-400/50 dark:text-slate-600"
-            )}>
+              isCompleted &&
+                "text-slate-400 line-through decoration-slate-400/50 dark:text-slate-600"
+            )}
+          >
             {task.title}
           </h4>
+
           <div className="flex items-center gap-2">
             <StatusBadge status={task.priority} />
             <span className="text-slate-300 dark:text-slate-700">•</span>

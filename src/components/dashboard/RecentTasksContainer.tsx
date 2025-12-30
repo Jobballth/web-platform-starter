@@ -22,18 +22,19 @@ export function RecentTasksContainer({ initialTasks }: { initialTasks: Task[] })
   const [filterStatus, setFilterStatus] = useState("all");
   const tabs = ['all', 'processing', 'done'];
 
-  // 1. กรองข้อมูลตาม Tab ที่เลือก
+  // ✅ 1. แก้ไขจุดที่ผิด: ปรับการเช็ค Status ให้เป็นตัวพิมพ์ใหญ่ (DONE, TODO) เพื่อให้ตรงกับ DB
   const filteredTasks = initialTasks.filter((task) => {
+    const status = task.status?.toUpperCase() || "TODO";
     if (filterStatus === "all") return true;
-    if (filterStatus === "done") return task.status === "completed";
-    if (filterStatus === "processing") return task.status === "processing" || task.status === "todo";
-    return task.status === filterStatus;
+    if (filterStatus === "done") return status === "DONE" || status === "COMPLETED";
+    if (filterStatus === "processing") return status === "TODO" || status === "IN_PROGRESS";
+    return status === filterStatus.toUpperCase();
   });
 
-  // 2. จัดเรียง: งานที่ "completed" จะถูกส่งไปไว้ท้ายสุดเสมอ
+  // ✅ 2. แก้ไขจุดที่ผิด: การจัดเรียงต้องเช็คค่า DONE
   const sortedTasks = [...filteredTasks].sort((a, b) => {
-    const aDone = a.status === 'completed' ? 1 : 0;
-    const bDone = b.status === 'completed' ? 1 : 0;
+    const aDone = (a.status?.toUpperCase() === 'DONE' || a.status?.toUpperCase() === 'COMPLETED') ? 1 : 0;
+    const bDone = (b.status?.toUpperCase() === 'DONE' || b.status?.toUpperCase() === 'COMPLETED') ? 1 : 0;
     return aDone - bDone;
   });
 
@@ -89,10 +90,10 @@ export function RecentTasksContainer({ initialTasks }: { initialTasks: Task[] })
 
 function TaskItem({ task }: { task: Task }) {
   const [isPending, startTransition] = useTransition();
-  const isCompleted = task.status === "completed";
+  // ✅ 3. แก้ไขจุดที่ผิด: ตรวจสอบ Status เป็น DONE ตัวใหญ่
+  const isCompleted = task.status?.toUpperCase() === "DONE" || task.status?.toUpperCase() === "COMPLETED";
 
   const handleToggle = (e: React.MouseEvent) => {
-    // ป้องกันการทำงานซ้อนถ้ากดปุ่มลบ
     if ((e.target as HTMLElement).closest('.action-btn')) return;
 
     startTransition(async () => {
@@ -132,15 +133,14 @@ function TaskItem({ task }: { task: Task }) {
   })();
 
   const priorityStyles = {
-    high: "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400",
-    medium: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400",
-    low: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400",
+    HIGH: "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400",
+    MEDIUM: "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400",
+    LOW: "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400",
   };
 
   return (
     <motion.div
       layout
-      // ✅ แอนิเมชันสลับตำแหน่งแบบนุ่มนวล (Tween) ลดอาการเด้งกระตุก
       transition={{
         layout: { type: "tween", ease: "easeOut", duration: 0.35 },
         opacity: { duration: 0.2 }
@@ -156,7 +156,6 @@ function TaskItem({ task }: { task: Task }) {
         isCompleted && "opacity-60 grayscale-[0.8] bg-slate-50/50 border-transparent shadow-none"
     )}>
       <div className="flex items-center gap-5 flex-1 min-w-0">
-         {/* Checkbox Icon */}
          <div className={cn(
            "h-7 w-7 rounded-full border-2 flex items-center justify-center transition-all duration-300 shrink-0",
            isCompleted ? "bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-500/20" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
@@ -173,7 +172,8 @@ function TaskItem({ task }: { task: Task }) {
          <div className="min-w-0 flex-1">
             <h3 className={cn(
               "font-bold text-lg text-slate-800 dark:text-slate-100 truncate transition-all duration-300",
-              isCompleted && "line-through text-slate-400 font-medium"
+              // ✅ 4. แก้ไขจุดที่ผิด: บังคับคลาสขีดฆ่าให้ทำงานเมื่อ isCompleted เป็นจริง
+              isCompleted && "line-through text-slate-400 font-medium decoration-slate-400"
             )}>
               {task.title}
             </h3>
@@ -185,7 +185,8 @@ function TaskItem({ task }: { task: Task }) {
               <span className="opacity-20 select-none">•</span>
               <span className={cn(
                 "px-2.5 py-0.5 rounded-lg uppercase text-[10px] font-black tracking-widest border transition-all",
-                isCompleted ? "bg-slate-100 text-slate-400 border-slate-200" : priorityStyles[task.priority as keyof typeof priorityStyles]
+                // ✅ 5. แก้ไขจุดที่ผิด: รองรับ Priority ทั้งตัวเล็กและตัวใหญ่
+                isCompleted ? "bg-slate-100 text-slate-400 border-slate-200" : (priorityStyles[task.priority?.toUpperCase() as keyof typeof priorityStyles] || priorityStyles.MEDIUM)
               )}>
                 {task.priority}
               </span>
@@ -193,7 +194,6 @@ function TaskItem({ task }: { task: Task }) {
          </div>
       </div>
 
-      {/* Delete Button */}
       <button 
         onClick={handleDelete}
         className="action-btn opacity-0 group-hover:opacity-100 p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-2xl transition-all cursor-pointer"

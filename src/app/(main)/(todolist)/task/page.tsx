@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { db } from "@/lib/db";
 import { getAuthUser } from "./actions";
-import { redirect } from "next/navigation"; // ✅ เพิ่ม redirect
+import { redirect } from "next/navigation";
 import CreateTaskModal from "@/components/todo/CreateTaskModal";
 import { OverviewStats, OverviewStatsSkeleton } from "@/components/dashboard/OverviewStats";
 import { RecentTasksContainer, RecentTasksSkeleton } from "@/components/dashboard/RecentTasksContainer";
@@ -28,7 +28,6 @@ const getCurrentDate = () => {
 export default async function DashboardPage() {
   const user = await getAuthUser();
 
-  // 🔒 Security Guard: ถ้าไม่ได้ Login ให้ดีดกลับหน้าแรกทันที
   if (!user) {
     redirect("/");
   }
@@ -38,19 +37,26 @@ export default async function DashboardPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const plainTasks: PlainTask[] = tasks.map(task => ({
-    id: task.id,
-    title: task.title,
-    status: task.status,
-    priority: task.priority,
-    userId: task.userId,
-    dueDate: task.dueDate ? task.dueDate.toISOString() : null,
-    createdAt: task.createdAt.toISOString(),
-  }));
+  // ✅ แก้ไขจุดนี้: ปรับ Status ให้เป็นมาตรฐานเดียวกัน (Normalization)
+  const plainTasks: PlainTask[] = tasks.map(task => {
+    const rawStatus = task.status ? task.status.toUpperCase() : "TODO";
+    // ถ้าเจอ "COMPLETED" หรือ "DONE" ให้แปลงเป็น "DONE" ทั้งหมด เพื่อให้ UI ขีดฆ่าถูก
+    const normalizedStatus = (rawStatus === "DONE" || rawStatus === "COMPLETED") ? "DONE" : "TODO";
+
+    return {
+      id: task.id,
+      title: task.title,
+      status: normalizedStatus, // ✅ ส่งค่าที่ปรับแล้วไป
+      priority: task.priority.toUpperCase(),
+      userId: task.userId,
+      dueDate: task.dueDate ? task.dueDate.toISOString() : null,
+      createdAt: task.createdAt.toISOString(),
+    };
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B1120] pb-20 relative overflow-hidden">
-      {/* Background Pattern - แก้ไข Syntax bg-[size:...] */}
+      {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[20px_20px] opacity-50 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 py-12 relative z-10">
@@ -78,12 +84,13 @@ export default async function DashboardPage() {
 
         {/* ส่วนสถิติ */}
         <Suspense fallback={<OverviewStatsSkeleton />}>
-           <OverviewStats userId={user.id} />
+            <OverviewStats userId={user.id} />
         </Suspense>
 
         {/* ส่วนรายการงาน */}
         <div className="mt-8">
           <Suspense fallback={<RecentTasksSkeleton />}>
+             {/* ✅ ส่ง plainTasks ที่แก้ status แล้วเข้าไป */}
              <RecentTasksContainer initialTasks={plainTasks} />
           </Suspense>
         </div>

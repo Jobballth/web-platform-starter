@@ -1,17 +1,22 @@
-// @/components/dashboard/Header.tsx (หรือไฟล์ที่คุณส่งมา)
 import Link from "next/link";
 import UserAccountNav from "./UserAccountNav";
 import ThemeToggle from "../ui/theme/ThemeToggle"; 
 import { getAuthUser } from "@/app/(main)/(todolist)/dashboard/actions";
+import { format } from "date-fns"; // ใช้ date-fns
 
 export default async function Header() { 
   const user = await getAuthUser(); 
+  const today = format(new Date(), "EEEE, MMMM do, yyyy"); // Monday, December 30th, 2025
 
   return (
-    // ✅ เปลี่ยนจาก z-40 เป็น z-30 เพื่อให้ Modal (z-50+) ทับได้
     <header className="h-20 border-b min-h-20 border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-800 flex items-center justify-end px-8 sticky top-0 z-10">
 
-      {/* 2. ส่วนขวา: กลุ่มปุ่มและสถานะผู้ใช้ */}
+      {/* วันที่ด้านซ้าย ปรับสไตล์ให้มืออาชีพ */}
+      <div className="absolute left-8 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm">
+        {today}
+      </div>
+
+      {/* ส่วนขวาเดิม */}
       <div className="flex items-center gap-4"> 
         <ThemeToggle />
 

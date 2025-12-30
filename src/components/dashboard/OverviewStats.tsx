@@ -7,10 +7,21 @@ interface OverviewStatsProps {
 }
 
 export async function OverviewStats({ userId }: OverviewStatsProps) {
+  // ✅ แก้ไข: ปรับสถานะให้รองรับทั้งตัวพิมพ์ใหญ่ (ตาม DB/Actions) และตัวพิมพ์เล็กเพื่อความแม่นยำ
   const [total, pending, completed] = await Promise.all([
     db.task.count({ where: { userId } }),
-    db.task.count({ where: { userId, status: { in: ["todo", "processing"] } } }),
-    db.task.count({ where: { userId, status: "completed" } }),
+    db.task.count({ 
+      where: { 
+        userId, 
+        status: { in: ["TODO", "todo", "PROCESSING", "processing", "IN_PROGRESS"] } 
+      } 
+    }),
+    db.task.count({ 
+      where: { 
+        userId, 
+        status: { in: ["DONE", "done", "COMPLETED", "completed"] } 
+      } 
+    }),
   ]);
 
   const stats = [
